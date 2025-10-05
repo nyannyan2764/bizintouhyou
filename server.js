@@ -63,7 +63,13 @@ io.on('connection', (socket) => {
             player.hasSubmitted = true;
             if (number === 'JOKER') player.hasUsedJoker = true;
         }
-        
+        // ▼▼▼ ここからデバッグ用の詳細ログを追加 ▼▼▼
+        console.log(`--- ルームID: ${roomId} の提出状況チェック ---`);
+        room.players.forEach(p => {
+        console.log(`  プレイヤー: ${p.name}, 生存: ${p.isAlive}, 提出済み: ${p.hasSubmitted}`);
+        });
+        // ▲▲▲ ここまで追加 ▲▲▲
+
         const alivePlayers = room.players.filter(p => p.isAlive);
         const allSubmitted = alivePlayers.every(p => p.hasSubmitted);
         

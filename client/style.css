@@ -1,0 +1,298 @@
+/* ============================== */
+/* 1. リセットと基本設定 */
+/* ============================== */
+
+:root {
+    /* カラーパレット */
+    --color-background: #121212; /* 背景 */
+    --color-surface: #1E1E1E;    /* コンテナ背景 */
+    --color-primary: #007BFF;    /* メインカラー (青) */
+    --color-joker: #9D4EDD;      /* JOKERカラー (紫) */
+    --color-text-main: #EAEAEA;  /* メインテキスト */
+    --color-text-muted: #888888; /* サブテキスト */
+    --color-border: #333333;     /* 境界線 */
+
+    /* フォント */
+    --font-body: 'Inter', sans-serif;
+    --font-display: 'Poppins', sans-serif;
+
+    /* レイアウト */
+    --border-radius: 8px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--color-background);
+    color: var(--color-text-main);
+    
+    /* コンテンツを常に中央に配置 */
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+
+/* ============================== */
+/* 2. メインレイアウトとコンテナ */
+/* ============================== */
+
+#game-container {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.screen {
+    display: none; /* JSで切り替えるためデフォルトは非表示 */
+}
+
+.screen.active {
+    display: block;
+    animation: fadeIn 0.5s ease;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none; /* JSで active を付与して表示 */
+    place-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+.overlay.active {
+    display: grid;
+}
+
+
+/* ============================== */
+/* 3. タイポグラフィと共通要素 */
+/* ============================== */
+
+.game-title {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--color-primary);
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.rule-box {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    margin: 1.5rem 0;
+    border-radius: var(--border-radius);
+    text-align: left;
+    color: var(--color-text-muted);
+}
+.rule-box p {
+    margin-bottom: 0.5rem;
+}
+.rule-box strong {
+    color: var(--color-text-main);
+}
+
+h3 {
+    text-align: center;
+    color: var(--color-text-muted);
+    margin-top: 1.5rem;
+}
+
+/* ============================== */
+/* 4. ボタンとフォーム */
+/* ============================== */
+
+.btn {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    margin-top: 1rem;
+}
+.btn.primary {
+    background-color: var(--color-primary);
+    color: white;
+}
+.btn:not(.primary) {
+    background-color: #333;
+    color: var(--color-text-main);
+}
+.btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.2);
+}
+.btn:disabled {
+    background-color: #2b2b2b;
+    color: #555;
+    cursor: not-allowed;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+    background-color: #222;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-main);
+    padding: 0.75rem;
+    font-size: 1rem;
+    border-radius: var(--border-radius);
+    width: 100%;
+    text-align: center;
+}
+input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+#player-setup {
+    display: flex;
+    gap: 10px;
+    margin: 1rem 0;
+}
+#player-setup .btn {
+    width: auto;
+    margin-top: 0;
+}
+#player-setup input {
+    flex-grow: 1;
+}
+
+/* ============================== */
+/* 5. ゲーム画面特有のスタイル */
+/* ============================== */
+
+#player-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+#player-list li {
+    background-color: #2a2a2a;
+    padding: 0.75rem;
+    border-left: 3px solid var(--color-primary);
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+.score-card {
+    background-color: #2a2a2a;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    min-width: 120px;
+    text-align: center;
+    border: 1px solid var(--color-border);
+}
+.score-card .name { font-weight: bold; }
+.score-card .score {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--color-primary);
+}
+.score-card.eliminated {
+    background-color: #222;
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+/* プレイヤー選択画面 */
+.player-select-box { text-align: center; }
+#player-select-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 2rem 0; }
+.player-select-btn {
+    padding: 0.75rem 1.25rem;
+    background-color: #333;
+    color: var(--color-text-main);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.player-select-btn.selected {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* 入力欄のロック状態 */
+.player-input-container {
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: var(--border-radius);
+    border: 2px solid transparent;
+    transition: all 0.3s ease-in-out;
+}
+.player-input-container.is-controllable {
+    border-color: var(--color-primary);
+    background-color: rgba(0, 123, 255, 0.05);
+}
+.player-input-container.is-locked {
+    opacity: 0.4;
+    pointer-events: none;
+}
+.player-input-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    align-items: center;
+}
+.joker-btn {
+    padding: 0.75rem;
+    border: 1px solid var(--color-joker);
+    color: var(--color-joker);
+    background-color: transparent;
+    border-radius: var(--border-radius);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.joker-btn.selected {
+    background-color: var(--color-joker);
+    color: white;
+}
+
+/* ============================== */
+/* 6. レスポンシブ対応 */
+/* ============================== */
+
+@media (min-width: 768px) {
+    html {
+        font-size: 18px; /* PCでは少しフォントを大きく */
+    }
+    #game-container {
+        max-width: 600px;
+        padding: 2.5rem;
+    }
+}
+
+/* ============================== */
+/* 7. アニメーション */
+/* ============================== */
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

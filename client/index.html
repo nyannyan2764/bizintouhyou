@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> 美人投票</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div id="game-container">
+
+        <div id="home-screen" class="screen active">
+            <h1 class="game-title">美人投票</h1>
+            <div class="home-menu">
+                <input type="text" id="player-name-input-home" placeholder="あなたの名前を入力" autocomplete="off">
+                <button id="create-room-btn" class="btn primary">ルームを作成</button>
+                <hr>
+                <input type="text" id="room-id-input" placeholder="ルームIDを入力" autocomplete="off">
+                <button id="join-room-btn" class="btn">ルームに参加</button>
+            </div>
+        </div>
+
+        <div id="lobby-screen" class="screen">
+            <h2 class="lobby-title">ロビー</h2>
+            <div class="room-info">
+                <p>ルームID:</p>
+                <strong id="lobby-room-id"></strong>
+            </div>
+            <h3>参加者 (<span id="lobby-player-count">1</span>人)</h3>
+            <ul id="lobby-player-list"></ul>
+            <button id="start-game-btn-lobby" class="btn primary">ゲーム開始</button>
+        </div>
+        <div id="game-screen" class="screen">
+            <div id="player-select-overlay" class="overlay">
+                <div class="player-select-box">
+                    <h2>あなたは誰ですか？</h2>
+                    <div id="player-select-buttons"></div>
+                    <button id="confirm-player-btn" class="btn primary" disabled>このプレイヤーで操作する</button>
+                </div>
+            </div>
+            
+            <h2 id="round-title" class="round-title"></h2>
+            <div id="current-rule" class="rule-highlight"></div>
+            <div id="scoreboard"></div>
+            <div id="input-area"></div>
+            <button id="submit-numbers-btn" class="btn primary">提出</button>
+        </div>
+
+        <div id="result-screen" class="screen">
+            <h2 id="result-round-title"></h2>
+            <div id="result-details" class="result-box">
+                <p>提出内容: <strong id="chosen-numbers"></strong></p>
+                <p>平均値 (JOKER除く): <strong id="average-value"></strong></p>
+                <p id="target-calculation-text"></p>
+            </div>
+            <h3 id="round-winner"></h3>
+            <div id="result-scoreboard"></div>
+            <button id="next-round-btn" class="btn">次のラウンドへ</button>
+        </div>
+        
+        <div id="game-clear-screen" class="screen">
+            <h1 class="game-title">GAME CLEAR</h1>
+            <h2 id="final-winner"></h2>
+            <p>最後の生存者です。おめでとうございます。</p>
+            <button id="play-again-btn-clear" class="btn">もう一度プレイ</button>
+        </div>
+    </div>
+    
+    <div id="elimination-screen" class="screen overlay">
+        <div class="elimination-box">
+            <h1 class="game-title">GAME OVER</h1>
+            <p id="eliminated-player-name" class="eliminated-name-display"></p>
+            <p>あなたのゲームはここで終了です。</p>
+            <button id="spectate-btn" class="btn">観戦に戻る</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="main.js"></script>
+    <script type="module" src="ui.js"></script>
+    <script type="module" src="state.js"></script>
+</body>
+</html>

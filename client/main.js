@@ -1,4 +1,3 @@
-// main.js
 import { gameState } from './state.js';
 import * as UI from './ui.js';
 import elements from './ui.js';
@@ -9,7 +8,6 @@ const socket = io();
 // サーバーへのイベント送信
 // ==============================
 function createRoom() {
-    console.log("ステップ1: createRoom関数が呼ばれました。"); // ← この行を追加
     const playerName = elements.playerNameInputHome.value.trim().toUpperCase();
     if (!playerName) { alert('名前を入力してください'); return; }
     socket.emit('create-room', playerName);
@@ -43,10 +41,27 @@ function submitNumber() {
         number = value;
     }
     
-    document.getElementById('submit-numbers-btn').disabled = true; // 二重送信防止
+    elements.submitNumbersBtn.disabled = true;
     socket.emit('submit-number', { roomId: gameState.roomId, number });
 }
 
+function handleJokerClick() {
+    const inputEl = document.getElementById('player-input');
+    const jokerBtn = document.getElementById('joker-btn');
+    
+    jokerBtn.classList.toggle('selected');
+
+    if (jokerBtn.classList.contains('selected')) {
+        inputEl.disabled = true;
+        inputEl.value = '';
+    } else {
+        inputEl.disabled = false;
+    }
+}
+
+function nextRound() {
+    socket.emit('next-round', gameState.roomId);
+}
 
 // ==============================
 // サーバーからのイベント受信
@@ -62,26 +77,41 @@ socket.on('room-created', (room) => {
 });
 
 socket.on('update-lobby', (room) => {
-    UI.showScreen('lobby');
     UI.updateLobbyView(room);
 });
 
 socket.on('game-started', (room) => {
     gameState.players = room.players;
+    elements.roundTitle.textContent = `ラウンド ${room.gameState.currentRound}`;
     UI.showScreen('game');
     UI.renderScoreboard(gameState.players);
     UI.updateRuleDisplay(gameState.players.filter(p=>p.isAlive).length, room.gameState.currentRound);
-    UI.renderInputArea(() => { /* JOKERボタンの処理 */ });
+    UI.renderInputArea(handleJokerClick);
+});
+
+socket.on('next-round-started', (room) => {
+    gameState.players = room.players;
+    elements.roundTitle.textContent = `ラウンド ${room.gameState.currentRound}`;
+    elements.submitNumbersBtn.disabled = false;
+    UI.showScreen('game');
+    UI.renderScoreboard(gameState.players);
+    UI.updateRuleDisplay(gameState.players.filter(p=>p.isAlive).length, room.gameState.currentRound);
+    UI.renderInputArea(handleJokerClick);
 });
 
 socket.on('round-result', (result) => {
-    gameState.players = result.players; // 最新のプレイヤー情報に更新
+    gameState.players = result.players;
     UI.showResultScreenUI(result);
+});
+
+socket.on('game-over', (winner) => {
+    UI.showGameClearScreen(winner);
 });
 
 socket.on('error', (message) => {
     alert(message);
 });
+
 
 // ==============================
 // イベントリスナー設定
@@ -91,9 +121,9 @@ function init() {
     elements.joinRoomBtn.addEventListener('click', joinRoom);
     elements.startGameBtnLobby.addEventListener('click', startGame);
     elements.submitNumbersBtn.addEventListener('click', submitNumber);
-    // next-round や play-again はリロードで対応するのが一番シンプル
-    document.getElementById('next-round-btn').addEventListener('click', () => { /* サーバー側で処理 */ });
-    document.getElementById('play-again-btn-clear').addEventListener('click', () => location.reload());
+    elements.nextRoundBtn.addEventListener('click', nextRound);
+    elements.playAgainBtnClear.addEventListener('click', () => location.reload());
+    elements.spectateBtn.addEventListener('click', () => UI.hideOverlay('elimination'));
 }
 
 init();

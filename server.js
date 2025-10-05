@@ -5,9 +5,7 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-
 const PORT = process.env.PORT || 3000;
-
 app.use(express.static('client'));
 
 // --- ゲームの心臓部 ---
@@ -27,7 +25,14 @@ io.on('connection', (socket) => {
         socket.join(roomId);
         rooms[roomId] = {
             id: roomId,
-            players: [{ id: socket.id, name: playerName, score: 0, isAlive: true, hasUsedJoker: false }],
+            players: [{ 
+                id: socket.id, 
+                name: playerName, 
+                score: 0, 
+                isAlive: true, 
+                hasUsedJoker: false,
+                hasSubmitted: false 
+            }],
             gameState: { currentRound: 1, inputs: {} }
         };
         socket.emit('room-created', rooms[roomId]);
@@ -35,10 +40,18 @@ io.on('connection', (socket) => {
 
     // 【ルーム参加】
     socket.on('join-room', ({ playerName, roomId }) => {
-        if (rooms[roomId]) {
+        const room = rooms[roomId];
+        if (room) {
             socket.join(roomId);
-            rooms[roomId].players.push({ id: socket.id, name: playerName, score: 0, isAlive: true, hasUsedJoker: false });
-            io.to(roomId).emit('update-lobby', rooms[roomId]);
+            room.players.push({ 
+                id: socket.id, 
+                name: playerName, 
+                score: 0, 
+                isAlive: true, 
+                hasUsedJoker: false,
+                hasSubmitted: false 
+            });
+            io.to(roomId).emit('update-lobby', room);
         } else {
             socket.emit('error', '指定されたルームが見つかりません。');
         }
@@ -46,9 +59,12 @@ io.on('connection', (socket) => {
 
     // 【ゲーム開始】
     socket.on('start-game', (roomId) => {
-        if (rooms[roomId]) {
-            rooms[roomId].players.forEach(p => { p.hasSubmitted = false; });
-            io.to(roomId).emit('game-started', rooms[roomId]);
+        const room = rooms[roomId];
+        if (room) {
+            if (room.players.length < 2) {
+                return socket.emit('error', '2人以上いないとゲームを開始できません。');
+            }
+            io.to(roomId).emit('game-started', room);
         }
     });
 
@@ -59,34 +75,36 @@ io.on('connection', (socket) => {
 
         const player = room.players.find(p => p.id === socket.id);
         if (player && !player.hasSubmitted) {
-            room.gameState.inputs[player.id] = number;
             player.hasSubmitted = true;
             if (number === 'JOKER') player.hasUsedJoker = true;
+            room.gameState.inputs[player.id] = number;
         }
-        // ▼▼▼ ここからデバッグ用の詳細ログを追加 ▼▼▼
-        console.log(`--- ルームID: ${roomId} の提出状況チェック ---`);
-        room.players.forEach(p => {
-        console.log(`  プレイヤー: ${p.name}, 生存: ${p.isAlive}, 提出済み: ${p.hasSubmitted}`);
-        });
-        // ▲▲▲ ここまで追加 ▲▲▲
-
+        
         const alivePlayers = room.players.filter(p => p.isAlive);
         const allSubmitted = alivePlayers.every(p => p.hasSubmitted);
-        
+
         if (allSubmitted) {
             const result = calculateResults(room);
-            room.gameState.currentRound++;
-            alivePlayers.forEach(p => { p.hasSubmitted = false; }); // 次のラウンドのためにリセット
             io.to(roomId).emit('round-result', result);
         } else {
-            io.to(roomId).emit('update-submission-status', room.players);
+            io.to(roomId).emit('update-submission-status', room.players.map(p => ({name: p.name, hasSubmitted: p.hasSubmitted})));
         }
     });
-
+    
     // 【次のラウンドへ】
     socket.on('next-round', (roomId) => {
-        if(rooms[roomId]){
-            io.to(roomId).emit('next-round-started', rooms[roomId]);
+        const room = rooms[roomId];
+        if(room){
+            room.gameState.currentRound++;
+            room.players.forEach(p => { 
+                if(p.isAlive) p.hasSubmitted = false; 
+            });
+            const alivePlayersCount = room.players.filter(p => p.isAlive).length;
+            if (alivePlayersCount <= 1) {
+                io.to(roomId).emit('game-over', room.players.find(p => p.isAlive));
+            } else {
+                io.to(roomId).emit('next-round-started', room);
+            }
         }
     });
 
@@ -98,7 +116,6 @@ io.on('connection', (socket) => {
             const playerIndex = room.players.findIndex(p => p.id === socket.id);
             if (playerIndex > -1) {
                 room.players.splice(playerIndex, 1);
-                // もし部屋に誰もいなくなったら部屋を削除
                 if (room.players.length === 0) {
                     delete rooms[roomId];
                 } else {
@@ -122,14 +139,13 @@ function calculateResults(room) {
         name: p.name,
         number: room.gameState.inputs[p.id]
     }));
-    const numberInputs = inputs.filter(p => p.number !== 'JOKER');
+    const numberInputs = inputs.filter(p => p.number !== 'JOKER' && !isNaN(p.number));
     
-    // ... (ここから下の計算ロジックは、以前main.jsにあったものとほぼ同じです) ...
     let winners = [];
     let specialRuleMessage = '';
-    // (省略) ... ルール判定と勝者決定 ...
+    
+    // (ここに詳細なルール判定を追加可能)
 
-    // 通常ルール
     const multiplier = alivePlayers.length <= 3 ? 1.2 : 0.8;
     let average = NaN, target = NaN;
     if (numberInputs.length > 0) {
@@ -149,19 +165,21 @@ function calculateResults(room) {
     }
 
     // 点数更新
-    alivePlayers.forEach(p => {
-        const playerInput = room.gameState.inputs[p.id];
-        if (!winners.includes(p.name) && playerInput !== 'JOKER') {
-            p.score -= 1;
+    room.players.forEach(p => {
+        if (p.isAlive) {
+            const playerInput = room.gameState.inputs[p.id];
+            if (!winners.includes(p.name) && playerInput !== 'JOKER') {
+                p.score -= 1;
+            }
+            if (p.score <= -10) {
+                p.isAlive = false;
+            }
         }
-        if (p.score <= -10) p.isAlive = false;
     });
-
-    room.gameState.inputs = {}; // 入力内容をリセット
 
     return {
         inputs, average, target, winners, multiplier, specialRuleMessage,
-        players: room.players, // 更新されたプレイヤーリスト
+        players: room.players,
         currentRound: room.gameState.currentRound
     };
 }
